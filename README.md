@@ -1,5 +1,5 @@
-# Genome Recombination Identification
-This program aims to discover the relation between a recombined genome sequence versus multiple reference sequences.
+# Genome Recombination Identification (Under development)
+This program aims to discover the relation between a recombined genome sequence versus multiple reference sequences. Currently the program is under development and may containing unexpected errors.
 
 
 ## Usage
