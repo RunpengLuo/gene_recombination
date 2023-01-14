@@ -3,7 +3,7 @@ from utils.paf_reader import *
 from utils.transformer import *
 from utils.ktree import *
 
-minimap_exec = "~/opt/miniconda3/bin/minimap2"
+minimap_exec = "minimap2"
 
 def run_minimap(ref_file: str, query_file: str, out_file="aln.paf", xflag="map-ont", use_secondary=False, flags="-c"):
     print("Running minimap2 alignment..")

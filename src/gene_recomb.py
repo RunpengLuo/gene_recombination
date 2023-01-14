@@ -57,8 +57,15 @@ if __name__ == "__main__":
     # Store the result
     output_result_by_cluster(read_dict, read_dist, bins, outdir)
 
-    os.system("echo \"k: {0}\nclusters: {1}\nnumber of reads: {2}\nnumber of reference: {3}\n\" > {4}work.log".format(
-        final_k, len(bins), len(read_dict), len(ref_dict), outdir
-    ))
+    config_file = outdir + "work.log"
+    os.system("echo "" > " + config_file)
+    with open(config_file, "w") as cfd:
+        cfd.write("k-mer size: {0}\nNumber of bins: {1}\nNumber of reads: {2}\nNumber of references: {3}\n".format(
+            final_k, len(bins), len(read_dict), len(ref_dict)
+        ))
+        cfd.write("Bin id\tNumber of reads\n")
+        for bid, bin in enumerate(bins):
+            cfd.write("{0}\t{1}\n".format(bid, len(bin)))
+        cfd.close()
 
     sys.exit(0)
