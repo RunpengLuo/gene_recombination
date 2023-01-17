@@ -129,9 +129,10 @@ dmypy.json
 .pyre/
 
 
-outdir/
 *.fq
 *.paf
 *.fasta
 *.txt
 zip*
+
+outdir*
