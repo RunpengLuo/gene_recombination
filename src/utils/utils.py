@@ -2,18 +2,17 @@ import os
 from utils.paf_reader import *
 from utils.transformer import *
 from utils.ktree import *
-
-minimap_exec = "minimap2"
+import utils.external as external
 
 def run_minimap(ref_file: str, query_file: str, out_file="aln.paf", xflag="map-ont", use_secondary=False, flags="-c"):
     print("Running minimap2 alignment..")
     os.system("{0} -x {1} --secondary={2} {3} {4} {5} > {6}".format(
-        minimap_exec, xflag, "yes" if use_secondary else "no", flags, ref_file, query_file, out_file))
+        external.minimap_exec, xflag, "yes" if use_secondary else "no", flags, ref_file, query_file, out_file))
     print("Done")
     return
 
-def get_base_alignment(read_dict: dict, read_file: str, ref_file: str, outdir):
-    paf_file = outdir + "aln.paf"
+def get_base_alignment(read_dict: dict, read_file: str, ref_file: str):
+    paf_file = external.outdir + "aln.paf"
     run_minimap(ref_file, read_file, paf_file, "map-ont", False, "-c")
 
     nfix = 0
@@ -30,6 +29,26 @@ def get_base_alignment(read_dict: dict, read_file: str, ref_file: str, outdir):
     print("number of fixed strandedness read: ", nfix, len(read_dict))
     return base_alignment, paf_reader
 
+def read_projection(read_dist: dict, read_pos: dict, ref_dict: dict, read_id: str, ref_ids: list):
+    # obtain reference-level alignments for a single read
+    dist, poses = read_dist[read_id], read_pos[read_id]
+    ref_assignments = {}
+    for ref_id, ref_seq in ref_dict.items():
+        ref_assignments[ref_id] = [0 for _ in range(len(ref_seq))]
+    
+    # project the result to 1d arr-es
+    for (res, pos) in zip(dist, poses):
+        if res != None:
+            for (re, p) in zip(res, pos):
+                ref_assignments[re][p] = 1
+
+    ref_assignments_int = []
+    for ref_id in ref_ids:
+        int_str = [str(a) for a in ref_assignments[ref_id]]
+        ref_assignments_int.append(''.join(int_str))
+
+    return ref_assignments, int(''.join(ref_assignments_int), 2)
+
 def merge_list(unmerged_arr: list):
     counter = 1
     prev = unmerged_arr[0]
@@ -44,54 +63,6 @@ def merge_list(unmerged_arr: list):
             prev = elem
     merged_arr.append((prev, counter))
     return merged_arr
-
-def get_divergence_score(proj1dict: dict, proj2dict: dict, keys: list):
-    total_len = 0
-    divergence = 0
-    for key in keys:
-        div = 0
-        ref_a, ref_b = proj1dict[key], proj2dict[key]
-        total_len += len(ref_a)
-        for (a,b) in zip(ref_a, ref_b):
-            div += (a+b) % 2
-        divergence += float(div)/len(ref_a)
-
-    return divergence/len(keys)        
-
-def read_binning(ref_projection: dict, ref_keys: list, div_rate=0.30):
-    """Construct the read bins by iteratively adding reads to bins, create a new bin if none of existing bins has divergence rate
-    less than <div_rate>, order invariant since computing xor for divergence check
-
-    Args:
-        ref_projection (dict): 1d projection on references for each reads
-        div_rate (float, optional): divergence ratio. Defaults to 0.10.
-    """
-    read_count = 0
-
-    bins = []
-    bin_len = 0
-    for rid, ref_proj in ref_projection.items():
-        read_count += 1
-        assign_bin = -1
-        min_rate = sys.maxsize
-        for bid in range(bin_len):
-            added_rid = bins[bid][random.randint(0, len(bins[bid])-1)]
-            rate = get_divergence_score(ref_projection[added_rid], ref_proj, ref_keys)
-            if rate < min_rate:
-                min_rate = rate
-                assign_bin = bid
-        
-        if min_rate <= div_rate:
-            bins[assign_bin].append(rid)
-        else:
-            # not added by any of the bins, create new bin 
-            bins.append([rid])
-            bin_len += 1
-
-    print("Total clusters: ", bin_len)
-    print("Total processed reads: ", read_count)
-
-    return bins
 
 def get_best_k(ref_dict: dict, read_dict: dict, err_rate=0.05, min_k=3, max_k=23):
    # evaluate current k choice

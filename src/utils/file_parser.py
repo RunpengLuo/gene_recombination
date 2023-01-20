@@ -1,5 +1,7 @@
 import os
 
+import utils.external as external
+
 def get_ref_file(ref_file: str):
     ref_dict = {}
     with open(ref_file, "r") as ref_fd:
@@ -44,13 +46,14 @@ def get_read_file(read_file: str):
         read_fd.close()
     return read_dict
 
-def output_result_by_cluster(read_dict: dict, read_dist: dict, bins: list, outdir):
-    for bid, bin in enumerate(bins):
-        outfile = outdir + "bin{0}.fasta".format(bid)
+def output_result_by_cluster(read_dict: dict, aln_dict: dict, read_dist: dict, bins: dict):
+    for bid, bin in bins.items():
+        outfile = external.outdir + "{0}.fasta".format(bid)
         os.system("echo "" > {0}".format(outfile))
         with open(outfile, "w") as fd:
             for read_id in bin:
                 dist = read_dist[read_id]
+                mapq, identity = aln_dict[read_id]
                 out_st = ""
                 for d in dist:
                     if d == None or len(d) == 0:
@@ -59,7 +62,9 @@ def output_result_by_cluster(read_dict: dict, read_dist: dict, bins: list, outdi
                         for elem in set(d):
                             out_st += str(elem) + ":"
                         out_st = out_st[:-1] + ","
-                fd.write(">{0}\t{1}\n{2}\n".format(read_id, out_st, read_dict[read_id]))
+                fd.write(">{0}\tMAPQ:{1}\tIDENTITY:{2}\t{3}\n{4}\n".format(
+                    read_id, mapq, identity, out_st, read_dict[read_id])
+                )
             fd.close()
-    print("result stored in: "+outdir+"bin\{#\}.fasta")
+    print("result stored in: "+ external.outdir +"bin{*}.fasta")
     return
